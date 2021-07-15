@@ -159,10 +159,11 @@ func (m *jobManager) stopJob(name, cluster string) error {
 		return err
 	}
 
-	// Deleting the prowjob pod will gracefully terminate template or step based jobs. In the case of
-	// steps, this includes running post steps.
-	klog.Infof("ProwJob pod for job %q will be deleted", name)
-	return m.clusterClients[cluster].CoreClient.CoreV1().Pods(m.prowNamespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+	klog.Infof("ProwJob pod for job %q will be aborted", name)
+	pj.SetComplete()
+	pj.Status.State = prowapiv1.AbortedState
+	_, err = m.prowClient.Namespace(m.prowNamespace).Update(context.TODO(), prow.ObjectToUnstructured(&pj), metav1.UpdateOptions{})
+	return err
 }
 
 // newJob creates a ProwJob for running the provided job and exits.
